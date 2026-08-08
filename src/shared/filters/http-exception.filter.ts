@@ -4,11 +4,14 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -31,6 +34,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ) {
         message = (exceptionResponse as any).message;
       }
+    } else {
+      // Se não tem exceptionResponse, é um erro não controlado (Bug, Banco, etc).
+      this.logger.error(
+        `[500 Internal Server Error] ${
+          exception instanceof Error ? exception.message : 'Unknown Error'
+        }`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     }
 
     // Retorna no mesmo padrão de envelopamento do TransformInterceptor
