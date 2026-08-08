@@ -1,12 +1,18 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
+import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
 @Controller('vehicles')
 export class VehiclesController {
   constructor(private readonly vehiclesService: VehiclesService) {}
 
+  @Post()
+  async create(@Body() createVehicleDto: CreateVehicleDto) {
+    return await this.vehiclesService.create(createVehicleDto);
+  }
+
   @Get()
-  findAll() {
-    return this.vehiclesService.findAll();
+  async findAll() {
+    return await this.vehiclesService.findAll();
   }
 }
