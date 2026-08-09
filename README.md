@@ -108,6 +108,49 @@ npm run test:e2e
 
 ---
 
+## 📂 Estrutura de Pastas
+
+A arquitetura do projeto segue o padrão modular do NestJS, separando as responsabilidades por domínios de negócio:
+
+```text
+src/
+├── app.module.ts                 # Módulo raiz principal
+├── main.ts                       # Bootstrap de inicialização (Swagger, Pipes, etc.)
+│
+├── clients/                      # 🧑 Módulo Clientes (Cadastro e limite de crédito)
+│   ├── clients.controller.ts
+│   ├── clients.service.ts
+│   └── entities/clients.entity.ts
+│
+├── vehicles/                     # 🚗 Módulo Veículos (Estoque e disponibilidade)
+│   ├── vehicles.controller.ts
+│   ├── vehicles.service.ts
+│   └── entities/vehicles.entity.ts
+│
+├── sellers/                      # 💼 Módulo Vendedores
+│   ├── sellers.controller.ts
+│   ├── sellers.service.ts
+│   └── entities/sellers.entity.ts
+│
+├── sales/                        # 🛒 Módulo Vendas (Faturamento e Simulações)
+│   ├── sales.controller.ts
+│   ├── sales.service.ts
+│   ├── use-cases/                # Lógicas complexas (liquidar, estornar)
+│   └── entities/
+│       ├── sales.entity.ts
+│       └── financings.entity.ts
+│
+├── database/                     # 🗄️ Configuração do Banco de Dados
+│   ├── data-source.ts            # Config do TypeORM
+│   └── migrations/               # Arquivos de migrações
+│
+└── shared/                       # 🛠️ Recursos Compartilhados
+    ├── filters/                  # Tratamentos de erros globais
+    └── interceptors/             # Transformações de resposta
+```
+
+---
+
 ## ✅ Requisitos Funcionais (RF)
 
 Aqui estão as funcionalidades mapeadas para o sistema e seu status de desenvolvimento atual:
