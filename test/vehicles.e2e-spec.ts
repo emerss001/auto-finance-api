@@ -42,6 +42,7 @@ describe('Vehicles (e2e)', () => {
     await dataSource.query('DELETE FROM sales');
     await dataSource.query('DELETE FROM vehicles');
     await dataSource.query('DELETE FROM clients');
+    await dataSource.query('DELETE FROM sellers');
   });
 
   it('/vehicles (POST) - Deve criar um veículo com sucesso (201)', async () => {
@@ -94,6 +95,35 @@ describe('Vehicles (e2e)', () => {
     expect(response.body.message).toContain('O preço não pode ser negativo');
   });
 
+  it('/vehicles (POST) - Deve retornar erro (409) se o chassi já existir', async () => {
+    // Cria o primeiro veículo
+    await request(app.getHttpServer())
+      .post('/vehicles')
+      .send({
+        brand: 'Ford',
+        model: 'Ka',
+        year: 2020,
+        chassi: 'ABCDE12345678901F',
+        price: 35000,
+      })
+      .expect(201);
+
+    // Tenta criar outro com o mesmo chassi
+    const response = await request(app.getHttpServer())
+      .post('/vehicles')
+      .send({
+        brand: 'Chevrolet',
+        model: 'Onix',
+        year: 2021,
+        chassi: 'ABCDE12345678901F',
+        price: 40000,
+      })
+      .expect(409);
+
+    expect(response.body.code).toBe(409);
+    expect(response.body.message).toContain('Já existe um veículo com este chassi');
+  });
+
   it('/vehicles (GET) - Deve listar os veículos com sucesso (200)', async () => {
     await request(app.getHttpServer())
       .post('/vehicles')
@@ -111,5 +141,14 @@ describe('Vehicles (e2e)', () => {
 
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(response.body.data.length).toBeGreaterThan(0);
+  });
+
+  it('/vehicles (GET) - Deve retornar array vazio quando não houver veículos (200)', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/vehicles')
+      .expect(200);
+
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBe(0);
   });
 });

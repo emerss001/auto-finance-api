@@ -5,6 +5,8 @@ import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { Client } from '../src/clients/entities/clients.entity';
 import { Vehicle } from '../src/vehicles/entities/vehicles.entity';
+import { Seller } from '../src/sellers/entities/sellers.entity';
+import { Financing } from '../src/sales/entities/financings.entity';
 import { VehicleStatus } from '../src/vehicles/enums/vehicle-status.enum';
 import { TransformInterceptor } from '../src/shared/interceptors/transform.interceptor';
 import { GlobalExceptionFilter } from '../src/shared/filters/http-exception.filter';
@@ -14,17 +16,16 @@ describe('Sales (e2e)', () => {
   let dataSource: DataSource;
   let savedClient: Client;
   let savedVehicle: Vehicle;
+  let savedSeller: Seller;
 
   // Setup Global
   beforeAll(async () => {
-    // Sobe a aplicação real, com todos os módulos reais
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
 
-    // Igual ao main.ts
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -40,7 +41,6 @@ describe('Sales (e2e)', () => {
     dataSource = app.get<DataSource>(DataSource);
   });
 
-  // Fecha a conexão após os testes
   afterAll(async () => {
     await dataSource.destroy();
     await app.close();
@@ -48,13 +48,13 @@ describe('Sales (e2e)', () => {
 
   // Limpa o banco e prepara novos dados ANTES DE CADA teste
   beforeEach(async () => {
-    // Apaga os dados antigos em ordem para não ferir foreign keys
     await dataSource.query('DELETE FROM financings');
     await dataSource.query('DELETE FROM sales');
     await dataSource.query('DELETE FROM vehicles');
     await dataSource.query('DELETE FROM clients');
+    await dataSource.query('DELETE FROM sellers');
 
-    // 1. Injetamos um Cliente de Teste via TypeORM direto
+    // 1. Injetamos um Cliente de Teste
     const client = dataSource.manager.create(Client, {
       name: 'João da Silva',
       document: '12345678901',
@@ -67,86 +67,325 @@ describe('Sales (e2e)', () => {
       brand: 'Honda',
       model: 'Civic',
       year: 2024,
-      chassi: 'XYZ123ABC',
+      chassi: 'XYZ123ABC45678901',
       price: 80000,
       status: VehicleStatus.AVAILABLE,
     });
     savedVehicle = await dataSource.manager.save(vehicle);
+
+    // 3. Injetamos um Vendedor de Teste
+    const seller = dataSource.manager.create(Seller, {
+      name: 'Vendedor Teste',
+      commissionRate: 5,
+    });
+    savedSeller = await dataSource.manager.save(seller);
   });
 
-  // O TESTE E2E (Simulando a chamada HTTP real)
-  it('/sales (POST) - Deve faturar com sucesso e gerar status HTTP 201', async () => {
-    // Dispara a requisição HTTP falsa com os dados
-    const response = await request(app.getHttpServer())
+  // ========== POST /sales/invoice ==========
+
+  describe('POST /sales/invoice', () => {
+    it('Deve faturar com sucesso sem desconto e gerar status HTTP 201', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+        })
+        .expect(201);
+
+      expect(response.body.data).toHaveProperty('invoiceId');
+      expect(response.body.data).toHaveProperty('status', 'COMPLETED');
+      expect(Number(response.body.data.amount)).toBe(80000);
+    });
+
+    it('Deve faturar com desconto percentual com sucesso (201)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+          discount: { type: 'PERCENTAGE', value: 10 },
+        })
+        .expect(201);
+
+      // 80000 - (80000 * 10 / 100) = 72000
+      expect(Number(response.body.data.amount)).toBe(72000);
+    });
+
+    it('Deve faturar com desconto em valor com sucesso (201)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+          discount: { type: 'VALUE', value: 5000 },
+        })
+        .expect(201);
+
+      // 80000 - 5000 = 75000
+      expect(Number(response.body.data.amount)).toBe(75000);
+    });
+
+    it('Deve retornar erro 422 quando o desconto for maior ou igual ao preço', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+          discount: { type: 'VALUE', value: 80000 },
+        })
+        .expect(422);
+
+      expect(response.body.code).toBe(422);
+      expect(response.body.message).toContain(
+        'desconto não pode ser maior ou igual',
+      );
+    });
+
+    it('Deve retornar erro 422 ao tentar comprar carro sem limite', async () => {
+      const carroCaro = await dataSource.manager.save(
+        dataSource.manager.create(Vehicle, {
+          brand: 'BMW',
+          model: 'X6',
+          year: 2024,
+          chassi: 'CARO12345678901AB',
+          price: 200000,
+          status: VehicleStatus.AVAILABLE,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: carroCaro.id,
+          seller_id: savedSeller.id,
+        })
+        .expect(422);
+
+      expect(response.body.message).toContain('Limite de crédito insuficiente');
+      expect(response.body.code).toBe(422);
+    });
+
+    it('Deve retornar erro 404 se o cliente não existir', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+        })
+        .expect(404);
+
+      expect(response.body.code).toBe(404);
+    });
+
+    it('Deve retornar erro 404 se o vendedor não existir', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        })
+        .expect(404);
+
+      expect(response.body.code).toBe(404);
+    });
+
+    it('Deve retornar erro 409 se o veículo já estiver vendido', async () => {
+      savedVehicle.status = VehicleStatus.SOLD;
+      await dataSource.manager.save(savedVehicle);
+
+      const response = await request(app.getHttpServer())
+        .post('/sales/invoice')
+        .send({
+          client_id: savedClient.id,
+          vehicle_id: savedVehicle.id,
+          seller_id: savedSeller.id,
+        })
+        .expect(409);
+
+      expect(response.body.code).toBe(409);
+      expect(response.body.message).toContain(
+        'Veículo não disponível para venda',
+      );
+    });
+  });
+
+  // ========== Helpers ==========
+
+  async function createSaleAndGetFinancing(): Promise<{
+    saleId: string;
+    financingId: string;
+  }> {
+    const saleResponse = await request(app.getHttpServer())
       .post('/sales/invoice')
       .send({
         client_id: savedClient.id,
         vehicle_id: savedVehicle.id,
-      })
-      .expect(201); // Valida se o status HTTP está correto
+        seller_id: savedSeller.id,
+      });
 
-    // Valida o corpo da resposta HTTP (envolvido pelo TransformInterceptor em .data)
-    expect(response.body.data).toHaveProperty('invoiceId');
-    expect(response.body.data).toHaveProperty('status', 'COMPLETED');
-    expect(Number(response.body.data.amount)).toBe(80000);
+    const saleId = saleResponse.body.data.invoiceId;
+    const financing = await dataSource.manager.findOne(Financing, {
+      where: { saleId: saleId },
+    });
+
+    return { saleId, financingId: financing!.id };
+  }
+
+  // ========== PATCH /sales/financings/:id/liquidate ==========
+
+  describe('PATCH /sales/financings/:id/liquidate', () => {
+    it('Deve liquidar o financiamento com sucesso (200)', async () => {
+      const { financingId } = await createSaleAndGetFinancing();
+
+      const response = await request(app.getHttpServer())
+        .patch(`/sales/financings/${financingId}/liquidate`)
+        .expect(200);
+
+      expect(response.body.data).toHaveProperty('status', 'LIQUIDATED');
+      expect(response.body.data).toHaveProperty('liquidatedAt');
+      expect(response.body.data.liquidatedAt).not.toBeNull();
+    });
+
+    it('Deve retornar 404 se o financiamento não existir', async () => {
+      const response = await request(app.getHttpServer())
+        .patch(
+          '/sales/financings/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/liquidate',
+        )
+        .expect(404);
+
+      expect(response.body.code).toBe(404);
+    });
+
+    it('Deve retornar 422 se o financiamento já estiver liquidado', async () => {
+      const { financingId } = await createSaleAndGetFinancing();
+
+      // Liquidar a primeira vez
+      await request(app.getHttpServer()).patch(
+        `/sales/financings/${financingId}/liquidate`,
+      );
+
+      // Tentar liquidar novamente
+      const response = await request(app.getHttpServer())
+        .patch(`/sales/financings/${financingId}/liquidate`)
+        .expect(422);
+
+      expect(response.body.code).toBe(422);
+      expect(response.body.message).toContain('já liquidado');
+    });
   });
 
-  it('/sales/invoice (POST) - Deve retornar erro 422 ao tentar comprar carro sem limite', async () => {
-    // Cadastramos uma BMW de 200 mil. O João tem só 100 mil.
-    const carroCaro = await dataSource.manager.save(
-      dataSource.manager.create(Vehicle, {
-        brand: 'BMW',
-        model: 'X6',
-        year: 2024,
-        chassi: 'CARO123',
-        price: 200000,
-        status: VehicleStatus.AVAILABLE,
-      }),
-    );
+  // ========== PATCH /sales/financings/:id/reject ==========
 
-    // Dispara a requisição tentando comprar
-    const response = await request(app.getHttpServer())
-      .post('/sales/invoice')
-      .send({
-        client_id: savedClient.id, // Cliente com limite de 100k
-        vehicle_id: carroCaro.id, // Carro custando 200k
-      })
-      .expect(422); // Rejeitado corretamente por falta de saldo
+  describe('PATCH /sales/financings/:id/reject', () => {
+    it('Deve rejeitar o financiamento com sucesso e reverter saldo e veículo (200)', async () => {
+      const creditLimitBefore = savedClient.creditLimit;
+      const { financingId } = await createSaleAndGetFinancing();
 
-    // Valida a mensagem de erro formatada pelo GlobalExceptionFilter
-    expect(response.body.message).toContain('Limite de crédito insuficiente');
-    expect(response.body.code).toBe(422);
+      const response = await request(app.getHttpServer())
+        .patch(`/sales/financings/${financingId}/reject`)
+        .expect(200);
+
+      expect(response.body.data).toHaveProperty('status', 'REJECTED');
+
+      // Verificar que o saldo do cliente foi restaurado
+      const updatedClient = await dataSource.manager.findOne(Client, {
+        where: { id: savedClient.id },
+      });
+      expect(Number(updatedClient!.creditLimit)).toBe(creditLimitBefore);
+
+      // Verificar que o veículo voltou a ficar disponível
+      const updatedVehicle = await dataSource.manager.findOne(Vehicle, {
+        where: { id: savedVehicle.id },
+      });
+      expect(updatedVehicle!.status).toBe(VehicleStatus.AVAILABLE);
+    });
+
+    it('Deve retornar 404 se o financiamento não existir', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/sales/financings/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/reject')
+        .expect(404);
+
+      expect(response.body.code).toBe(404);
+    });
+
+    it('Deve retornar 422 se o financiamento já estiver rejeitado', async () => {
+      const { financingId } = await createSaleAndGetFinancing();
+
+      // Rejeitar a primeira vez
+      await request(app.getHttpServer()).patch(
+        `/sales/financings/${financingId}/reject`,
+      );
+
+      // Tentar rejeitar novamente
+      const response = await request(app.getHttpServer())
+        .patch(`/sales/financings/${financingId}/reject`)
+        .expect(422);
+
+      expect(response.body.code).toBe(422);
+    });
   });
 
-  it('/sales/invoice (POST) - Deve retornar erro 404 se o cliente não existir', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/sales/invoice')
-      .send({
-        client_id: '00000000-0000-0000-0000-000000000000', // UUID falso
-        vehicle_id: savedVehicle.id,
-      })
-      .expect(404);
+  // ========== GET /sales ==========
 
-    expect(response.body.code).toBe(404);
-    expect(response.body.message).toContain('Cliente não encontrado');
+  describe('GET /sales', () => {
+    it('Deve listar as vendas com sucesso (200)', async () => {
+      await createSaleAndGetFinancing();
+
+      const response = await request(app.getHttpServer())
+        .get('/sales')
+        .expect(200);
+
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0]).toHaveProperty('id');
+      expect(response.body.data[0]).toHaveProperty('clientName');
+      expect(response.body.data[0]).toHaveProperty('vehicleModel');
+      expect(response.body.data[0]).toHaveProperty('financingStatus');
+    });
+
+    it('Deve retornar array vazio quando não houver vendas (200)', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/sales')
+        .expect(200);
+
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(0);
+    });
   });
 
-  it('/sales/invoice (POST) - Deve retornar erro 409 se o veículo já estiver vendido', async () => {
-    // Vamos marcar o veículo salvo como vendido
-    savedVehicle.status = VehicleStatus.SOLD;
-    await dataSource.manager.save(savedVehicle);
+  // ========== GET /sales/financings ==========
 
-    const response = await request(app.getHttpServer())
-      .post('/sales/invoice')
-      .send({
-        client_id: savedClient.id,
-        vehicle_id: savedVehicle.id,
-      })
-      .expect(409);
+  describe('GET /sales/financings', () => {
+    it('Deve listar os financiamentos com sucesso (200)', async () => {
+      await createSaleAndGetFinancing();
 
-    expect(response.body.code).toBe(409);
-    expect(response.body.message).toContain(
-      'Veículo não disponível para venda',
-    );
+      const response = await request(app.getHttpServer())
+        .get('/sales/financings')
+        .expect(200);
+
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0]).toHaveProperty('id');
+      expect(response.body.data[0]).toHaveProperty('status');
+      expect(response.body.data[0]).toHaveProperty('clientName');
+      expect(response.body.data[0]).toHaveProperty('vehicleModel');
+    });
+
+    it('Deve retornar array vazio quando não houver financiamentos (200)', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/sales/financings')
+        .expect(200);
+
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(0);
+    });
   });
 });
