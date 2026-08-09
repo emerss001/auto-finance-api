@@ -12,6 +12,7 @@ import { SaleStatus } from '../enums/sale-status.enum';
 import { Client } from '../../clients/entities/clients.entity';
 import { Vehicle } from '../../vehicles/entities/vehicles.entity';
 import { Financing } from './financings.entity';
+import { Seller } from '../../sellers/entities/sellers.entity';
 
 @Entity('sales')
 export class Sale {
@@ -28,6 +29,13 @@ export class Sale {
   @Column({ name: 'client_id', type: 'uuid' })
   clientId: string;
 
+  @ManyToOne(() => Seller)
+  @JoinColumn({ name: 'seller_id' })
+  seller: Seller;
+
+  @Column({ name: 'seller_id', type: 'uuid', nullable: true })
+  sellerId: string;
+
   @OneToOne(() => Vehicle)
   @JoinColumn({ name: 'vehicle_id' })
   vehicle: Vehicle;
@@ -43,6 +51,23 @@ export class Sale {
     transformer: numericTransformer,
   })
   amount: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: numericTransformer,
+    default: 0,
+  })
+  discount_amount: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: numericTransformer,
+  })
+  commission_amount: number;
 
   @Column({
     type: 'enum',

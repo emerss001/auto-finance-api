@@ -3,6 +3,7 @@ import { Sale } from '../entities/sales.entity';
 export class SaleListResponseDto {
   id: string;
   amount: number;
+  discountAmount: number;
   status: string;
   date: Date;
   clientName: string;
@@ -15,6 +16,7 @@ export class SaleListResponseDto {
     return {
       id: sale.id,
       amount: sale.amount,
+      discountAmount: sale.discount_amount || 0,
       status: sale.status,
       date: sale.createdAt,
       clientName: sale.client?.name,
