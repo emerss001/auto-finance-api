@@ -1,0 +1,404 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: auto-finance-api
+meta:
+  id: wrk_62ceec94e1af4d60b7a6b38b71ef35c5
+  created: 1786153750572
+  modified: 1786153750572
+  description: ""
+collection:
+  - name: Clientes
+    meta:
+      id: fld_e170c62aa28c41b6a15928feab6a3d3b
+      created: 1786153796276
+      modified: 1786153839680
+      sortKey: -1786153796276
+      description: ""
+    children:
+      - url: "{{ _.server }}/clients"
+        name: Listar clientes
+        meta:
+          id: req_c9315b53c4964280bd3988754ad269c8
+          created: 1786153799081
+          modified: 1786153829034
+          isPrivate: false
+          description: ""
+          sortKey: -1786153799081
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/clients"
+        name: Criar cliente
+        meta:
+          id: req_e429a8635cc5430bb6685fa579fb6a5b
+          created: 1786153848322
+          modified: 1786248319425
+          isPrivate: false
+          description: ""
+          sortKey: -1786153848322
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"document": "12345678955",
+            	"name": "Emerson Neves",
+            	"creditLimit": 200000
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/clients/38370322-c89b-452d-9d48-c981ee8eda7c"
+        name: buscar cliente por ID
+        meta:
+          id: req_2141f71caf0f41c4b1386ed2f1976b8a
+          created: 1786155925011
+          modified: 1786156595631
+          isPrivate: false
+          description: ""
+          sortKey: -1784449425964.5
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Veiculos
+    meta:
+      id: fld_787411dd32864681b55677bca3247ce5
+      created: 1786154922609
+      modified: 1786154922609
+      sortKey: -1786154922609
+      description: ""
+    children:
+      - url: "{{ _.server }}/vehicles"
+        name: Criar veiculo
+        meta:
+          id: req_e3964720a3874c9d9a3e0d2881b2433d
+          created: 1786154925994
+          modified: 1786281469840
+          isPrivate: false
+          description: ""
+          sortKey: -1786154925994
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"chassi": "12345678978544712",
+            	"brand": "Chevrolet",
+            	"model": "Tracker",
+            	"year": 2024,
+            	"price": 170000
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/vehicles"
+        name: listar veiculos
+        meta:
+          id: req_07fe291aacd94c51b22fadf02709225f
+          created: 1786155223682
+          modified: 1786155238035
+          isPrivate: false
+          description: ""
+          sortKey: -1786155223682
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Vendas
+    meta:
+      id: fld_bfed188f2dda49f1acd33d8cea98091e
+      created: 1786235777223
+      modified: 1786235777223
+      sortKey: -1786235777223
+      description: ""
+    children:
+      - url: "{{ _.server }}/sales/invoice"
+        name: Criar venda
+        meta:
+          id: req_fddbd2f97f584f499112f2f372c67678
+          created: 1786235784289
+          modified: 1786281503938
+          isPrivate: false
+          description: ""
+          sortKey: -1786235784290
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"client_id": "63654094-6a82-4ffb-b30d-56ddaa158f69",
+            	"vehicle_id": "08c9492e-22f2-4eab-80ac-38f10b589f51",
+            	"seller_id": "be06dec4-df0c-42d7-8eb3-434d5122594a",
+            	"discount": {
+            		"type": "VALUE",
+            		"value": 15000
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/sales"
+        name: Listar vendas
+        meta:
+          id: req_7db69ec0c40a4d6b9e1e0a73813923bc
+          created: 1786236784339
+          modified: 1786236838930
+          isPrivate: false
+          description: ""
+          sortKey: -1786236784339
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server
+          }}/sales/financings/d8fc1975-5782-41ce-9287-9f7ca8d4bea1/liquidate"
+        name: Liquidar financiamento
+        meta:
+          id: req_45eb6e5785024acda04c3956e1b1fc57
+          created: 1786237690271
+          modified: 1786281566944
+          isPrivate: false
+          description: ""
+          sortKey: -1786237690271
+        method: PATCH
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/sales/financings"
+        name: Listar financiamentos
+        meta:
+          id: req_746ccad4bdf4465b85f8d8e70a7098d6
+          created: 1786238007850
+          modified: 1786238028112
+          isPrivate: false
+          description: ""
+          sortKey: -1786238007850
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server
+          }}/sales/financings/4c5c3276-70a2-4118-9896-4759a48e8740/reject"
+        name: Rejeitar financiamento
+        meta:
+          id: req_a6841193df4f42899d36df4ff99a7f90
+          created: 1786246513075
+          modified: 1786249603221
+          isPrivate: false
+          description: ""
+          sortKey: -1786246513075
+        method: PATCH
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Vendedores
+    meta:
+      id: fld_fd364ec5c509476aaf53a94be13c7a4b
+      created: 1786244550102
+      modified: 1786244550102
+      sortKey: -1786244550102
+      description: ""
+    children:
+      - url: "{{ _.server }}/sellers"
+        name: Criar vendedor
+        meta:
+          id: req_1aca16701c3446988734f695def98fb4
+          created: 1786244554489
+          modified: 1786244919346
+          isPrivate: false
+          description: ""
+          sortKey: -1786244554489
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"name": "Marcos Bom de Papo",
+            	"commissionRate": 5
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server }}/sellers"
+        name: Listar vendedores
+        meta:
+          id: req_46b3703c904d4f538bc701949e023e39
+          created: 1786245576150
+          modified: 1786283222949
+          isPrivate: false
+          description: ""
+          sortKey: -1786245576150
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.server
+          }}/sellers/be06dec4-df0c-42d7-8eb3-434d5122594a/commission?startDate=\
+          2026-01-01&endDate=2026-12-31"
+        name: buscar estatistica de um vendendor
+        meta:
+          id: req_91e0cac441204eeb8b28014266ef8183
+          created: 1786280694667
+          modified: 1786281669265
+          isPrivate: false
+          description: ""
+          sortKey: -1786280694667
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.3.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_73bce47a029c1f02f94affc9d756315a5dba0431
+    created: 1786153750579
+    modified: 1786153750579
+environments:
+  name: Base Environment
+  meta:
+    id: env_73bce47a029c1f02f94affc9d756315a5dba0431
+    created: 1786153750575
+    modified: 1786282582040
+    isPrivate: false
+  data:
+    server: http://localhost:3000
