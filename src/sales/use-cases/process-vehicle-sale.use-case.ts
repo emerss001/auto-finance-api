@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Sale } from '../entities/sales.entity';
-import { Vehicle } from 'src/vehicles/entities/vehicles.entity';
-import { VehicleStatus } from 'src/vehicles/enums/vehicle-status.enum';
-import { Client } from 'src/clients/entities/clients.entity';
+import { Vehicle } from '../../vehicles/entities/vehicles.entity';
+import { VehicleStatus } from '../../vehicles/enums/vehicle-status.enum';
+import { Client } from '../../clients/entities/clients.entity';
 import { SaleStatus } from '../enums/sale-status.enum';
 import { Financing } from '../entities/financings.entity';
 import { FinancingStatus } from '../enums/financing-status.enum';
