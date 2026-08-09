@@ -18,6 +18,8 @@ import { databaseConfig, DatabaseConfig } from './database.config';
         autoLoadEntities: true,
         synchronize: process.env.NODE_ENV === 'test',
         dropSchema: process.env.NODE_ENV === 'test',
+        migrationsRun: process.env.NODE_ENV !== 'test',
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
       }),
     }),
   ],

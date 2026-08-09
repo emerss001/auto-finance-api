@@ -39,7 +39,10 @@ async function bootstrap() {
     .addTag('Veículos', 'Cadastro e consulta de veículos disponíveis')
     .addTag('Vendedores', 'Cadastro e consulta de vendedores')
     .addTag('Vendas', 'Faturamento de vendas e consulta de operações')
-    .addTag('Financiamentos', 'Liquidação, rejeição e consulta de financiamentos')
+    .addTag(
+      'Financiamentos',
+      'Liquidação, rejeição e consulta de financiamentos',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
@@ -60,6 +63,6 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();

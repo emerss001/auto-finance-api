@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Serviço da API (opcional para rodar local enquanto desenvolve, mas bom ter configurado)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto-finance-api
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Sobrescrevemos o DB_HOST e DB_PORT para se conectar ao banco no Docker Network
+      - DB_HOST=db
+      - DB_PORT=5432
+      - PORT=3000
+
+  # Banco de Dados Principal e de Teste
+  db:
+    image: postgres:15-alpine
+    container_name: auto-finance-db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      # O banco principal será criado automaticamente
+      POSTGRES_DB: auto-finance
+    ports:
+      # Mapeia a porta interna 5432 do container para a 5433 na sua máquina local (conforme seu .env)
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Script para criar o banco de dados de teste na inicialização
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d auto-finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
