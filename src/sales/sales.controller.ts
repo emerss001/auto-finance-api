@@ -13,6 +13,7 @@ import { InvoiceResponseDto } from './dto/invoice-response.dto';
 import { SalesService } from './sales.service';
 import { SaleListResponseDto } from './dto/sale-list-response.dto';
 import { LiquidateFinancingUseCase } from './use-cases/liquidate-financing.use-case';
+import { RejectFinancingUseCase } from './use-cases/reject-financing.use-case';
 import { FinancingListResponseDto } from './dto/financing-list-response.dto';
 
 @Controller('sales')
@@ -20,22 +21,25 @@ export class SalesController {
   constructor(
     private readonly processVehicleSaleUseCase: ProcessVehicleSaleUseCase,
     private readonly liquidateFinancingUseCase: LiquidateFinancingUseCase,
+    private readonly rejectFinancingUseCase: RejectFinancingUseCase,
     private readonly salesService: SalesService,
   ) {}
 
   @Post('invoice')
   async invoiceVehicleSale(@Body() createSaleDto: CreateSaleDto) {
-    const { client_id, vehicle_id } = createSaleDto;
-    const sale = await this.processVehicleSaleUseCase.execute(
-      client_id,
-      vehicle_id,
-    );
+    const sale = await this.processVehicleSaleUseCase.execute(createSaleDto);
     return InvoiceResponseDto.fromEntity(sale);
   }
 
   @Patch('financings/:id/liquidate')
   async liquidateFinancing(@Param('id', ParseUUIDPipe) financingId: string) {
     const financing = await this.liquidateFinancingUseCase.execute(financingId);
+    return financing;
+  }
+
+  @Patch('financings/:id/reject')
+  async rejectFinancing(@Param('id', ParseUUIDPipe) financingId: string) {
+    const financing = await this.rejectFinancingUseCase.execute(financingId);
     return financing;
   }
 

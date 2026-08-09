@@ -6,6 +6,7 @@ import { Sale } from './entities/sales.entity';
 import { Financing } from './entities/financings.entity';
 import { ProcessVehicleSaleUseCase } from './use-cases/process-vehicle-sale.use-case';
 import { LiquidateFinancingUseCase } from './use-cases/liquidate-financing.use-case';
+import { RejectFinancingUseCase } from './use-cases/reject-financing.use-case';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Sale, Financing])],
@@ -14,6 +15,7 @@ import { LiquidateFinancingUseCase } from './use-cases/liquidate-financing.use-c
     SalesService,
     ProcessVehicleSaleUseCase,
     LiquidateFinancingUseCase,
+    RejectFinancingUseCase,
   ],
 })
 export class SalesModule {}

@@ -12,12 +12,16 @@ import { Client } from '../../clients/entities/clients.entity';
 import { SaleStatus } from '../enums/sale-status.enum';
 import { Financing } from '../entities/financings.entity';
 import { FinancingStatus } from '../enums/financing-status.enum';
+import { Seller } from '../../sellers/entities/sellers.entity';
+import { CreateSaleDto, DiscountType } from '../dto/create-sale.dto';
 
 @Injectable()
 export class ProcessVehicleSaleUseCase {
   constructor(private readonly dataSource: DataSource) {}
 
-  async execute(client_id: string, vehicle_id: string): Promise<Sale> {
+  async execute(input: CreateSaleDto): Promise<Sale> {
+    const { client_id, vehicle_id, seller_id, discount } = input;
+
     // 1 - abrir transação no banco de dados
     return await this.dataSource.transaction(async (manager) => {
       // 2 - buscar e bloquear o veículo para venda
@@ -34,7 +38,16 @@ export class ProcessVehicleSaleUseCase {
         throw new ConflictException('Veículo não disponível para venda');
       }
 
-      // 3 - buscar o cliente
+      // 3 - buscar o vendedor
+      const seller = await manager.findOne(Seller, {
+        where: { id: seller_id },
+      });
+
+      if (!seller) {
+        throw new NotFoundException('Vendedor não encontrado');
+      }
+
+      // 4 - buscar o cliente
       const client = await manager.findOne(Client, {
         where: { id: client_id },
       });
@@ -43,21 +56,51 @@ export class ProcessVehicleSaleUseCase {
         throw new NotFoundException('Cliente não encontrado');
       }
 
-      // 4 - validar a margem de crédito do cliente
-      if (Number(client.creditLimit) < Number(vehicle.price)) {
+      // 5 - aplicar desconto, se houver
+      let finalPrice = Number(vehicle.price);
+      if (discount) {
+        if (discount.type === DiscountType.PERCENTAGE) {
+          finalPrice =
+            Number(vehicle.price) -
+            (Number(vehicle.price) * discount.value) / 100;
+        } else if (discount.type === DiscountType.VALUE) {
+          finalPrice = Number(vehicle.price) - discount.value;
+        }
+      }
+
+      if (finalPrice <= 0) {
+        throw new UnprocessableEntityException(
+          'O desconto não pode ser maior ou igual ao preço do veículo',
+        );
+      }
+
+      // 6 - validar a margem de crédito do cliente
+      if (Number(client.creditLimit) < finalPrice) {
         throw new UnprocessableEntityException(
           'Limite de crédito insuficiente para esta transação.',
         );
       }
-      // 5 - efetuar a deduções
-      client.creditLimit = Number(client.creditLimit) - Number(vehicle.price);
+
+      // 7 - calcular comissão do vendedor
+      const commissionAmount =
+        finalPrice * (Number(seller.commissionRate) / 100);
+
+      // 9 - efetuar a deduções
+      client.creditLimit = Number(client.creditLimit) - finalPrice;
       vehicle.status = VehicleStatus.SOLD;
 
-      // 6 - criar a venda e financiamento
+      // 10 - criar a venda e financiamento
+      const monetaryDiscount = discount
+        ? Number(vehicle.price) - finalPrice
+        : 0;
+
       const sale = manager.create(Sale, {
         client,
         vehicle,
-        amount: vehicle.price,
+        seller,
+        discount_amount: monetaryDiscount,
+        commission_amount: commissionAmount,
+        amount: finalPrice,
         status: SaleStatus.COMPLETED,
       });
 
@@ -70,6 +113,7 @@ export class ProcessVehicleSaleUseCase {
 
       await manager.save(Client, client);
       await manager.save(Vehicle, vehicle);
+
       await manager.save(Financing, financing);
 
       return savedSale;
