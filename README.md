@@ -4,13 +4,13 @@
 
 #### Gestão de Veículos
 
-- [ ] Deve ser possível realizar o cadastro de veículos;
-- [ ] Deve ser possível listar os veículos cadastrados;
+- [ X ] Deve ser possível realizar o cadastro de veículos;
+- [ X ] Deve ser possível listar os veículos cadastrados;
 
 #### Gestão de Clientes
 
-- [ ] Deve ser possível realizar o cadastro de clientes;
-- [ ] Deve ser possível listar os clientes cadastrados;
+- [ X ] Deve ser possível realizar o cadastro de clientes;
+- [ X ] Deve ser possível listar os clientes cadastrados;
 
 #### Simulação de Margem
 
