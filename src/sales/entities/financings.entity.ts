@@ -15,7 +15,7 @@ export class Financing {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToOne(() => Sale)
+  @OneToOne(() => Sale, (sale) => sale.financing)
   @JoinColumn({ name: 'sale_id' })
   sale: Sale;
 

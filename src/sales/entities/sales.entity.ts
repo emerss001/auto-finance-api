@@ -11,11 +11,15 @@ import { numericTransformer } from '../../shared/transformers/numeric.transforme
 import { SaleStatus } from '../enums/sale-status.enum';
 import { Client } from '../../clients/entities/clients.entity';
 import { Vehicle } from '../../vehicles/entities/vehicles.entity';
+import { Financing } from './financings.entity';
 
 @Entity('sales')
 export class Sale {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @OneToOne(() => Financing, (financing) => financing.sale)
+  financing: Financing;
 
   @ManyToOne(() => Client)
   @JoinColumn({ name: 'client_id' })
