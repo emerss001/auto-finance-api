@@ -58,6 +58,12 @@ export class RejectFinancingUseCase {
         lock: { mode: 'pessimistic_write' },
       });
 
+      if (client?.id !== sale.clientId) {
+        throw new UnprocessableEntityException(
+          'Cliente associado não corresponde à venda',
+        );
+      }
+
       if (!client) {
         throw new UnprocessableEntityException(
           'Cliente associado não encontrado',
