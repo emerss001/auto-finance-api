@@ -129,4 +129,60 @@ describe('Sellers (e2e)', () => {
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(response.body.data.length).toBe(0);
   });
+
+  describe('GET /sellers/:id/commission', () => {
+    it('deve retornar resumo de comissões com sucesso (200)', async () => {
+      // 1. Criar vendedor
+      const sellerRes = await request(app.getHttpServer())
+        .post('/sellers')
+        .send({ name: 'Vendedor Comissao', commissionRate: 10 })
+        .expect(201);
+      const sellerId = sellerRes.body.data.id;
+
+      // Buscar comissões sem vendas deve retornar 0
+      const summaryRes = await request(app.getHttpServer())
+        .get(
+          `/sellers/${sellerId}/commission?startDate=2020-01-01&endDate=2030-12-31`,
+        )
+        .expect(200);
+
+      expect(summaryRes.body.data.totalSales).toBe(0);
+      expect(summaryRes.body.data.totalCommission).toBe(0);
+    });
+
+    it('deve retornar 404 se o vendedor não existir', async () => {
+      const response = await request(app.getHttpServer())
+        .get(
+          '/sellers/invalid-uuid/commission?startDate=2020-01-01&endDate=2030-12-31',
+        )
+        .expect(400);
+
+      expect(response.body.code).toBe(400);
+
+      // Testando com UUID válido mas inexistente
+      const res404 = await request(app.getHttpServer())
+        .get(
+          '/sellers/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d/commission?startDate=2020-01-01&endDate=2030-12-31',
+        )
+        .expect(404);
+
+      expect(res404.body.code).toBe(404);
+    });
+
+    it('deve retornar 400 se as datas não forem fornecidas', async () => {
+      // 1. Criar vendedor
+      const sellerRes = await request(app.getHttpServer())
+        .post('/sellers')
+        .send({ name: 'Vendedor Comissao', commissionRate: 10 })
+        .expect(201);
+      const sellerId = sellerRes.body.data.id;
+
+      const res400 = await request(app.getHttpServer())
+        .get(`/sellers/${sellerId}/commission`)
+        .expect(400);
+
+      expect(res400.body.code).toBe(400);
+      expect(res400.body.message).toEqual(expect.any(Array));
+    });
+  });
 });
