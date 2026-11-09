@@ -183,3 +183,7 @@ Para garantir que tudo funcione com segurança e consistência, a API aplica reg
 - [ ] **Atomicidade da Venda:** O faturamento engloba três ações no banco: deduzir limite do cliente, alterar status do carro e criar proposta. Se uma falhar, as outras são desfeitas (tudo ou nada).
 - [ ] **Imutabilidade de Status:** Um veículo não "Disponível" não pode ser faturado. Financiamentos "Liquidados" ou "Cancelados" não podem sofrer novas alterações.
 - [ ] **Recomposição de Margem:** Ao cancelar um faturamento, o limite de crédito é imediatamente devolvido ao cliente e o carro volta a ficar "Disponível".
+
+---
+
+Feito por [Emerson Neves](https://www.devemerson.site)
